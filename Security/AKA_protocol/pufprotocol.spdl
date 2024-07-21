@@ -1,0 +1,124 @@
+hashfunction h;
+hashfunction h1;
+const XOR : Function;
+const Concat : Function;
+const PUF : Function;
+
+protocol PUFsecProtocol (M,H,G)
+{
+macro ah = XOR (Rh, idh);
+macro bh = XOR( ah,rh);
+macro pidm = XOR(MSK,idm);
+macro pidh = XOR(MSK,idh);
+macro H1 = h(Concat(pidm,idm,T1));
+macro H2 = h( Concat(pidh,idh,T2));
+macro H3 = h ( Concat( pidh,rg,Rh,T3));
+macro ahStar = XOR (Rh, idh);
+macro rhStar = XOR ( ahStar, bh);
+macro lambda = XOR (rhStar, rg);
+macro rgStar = XOR( lambda, rh);
+
+macro am =  XOR(Rm, idm);
+macro beta =  XOR(am, rg);
+macro amStar = XOR(beta,rgStar);
+
+macro bm = XOR(am, rm);
+macro rmStar = XOR(amStar,bm);
+macro H1Star = h(Concat(pidm,rmStar,T1));
+macro mew = XOR( rmStar, rp);
+macro delta = XOR( Ch, rg);
+macro ChStar = XOR(delta,rgStar);
+macro RhStar = PUF(ChStar);
+macro Rm' = h1(Rm);
+macro omega = XOR (Rm' , Rh);
+macro Rm''= XOR( omega,RhStar);
+macro H4 = h(Concat(pidm,rp,Rm'',T4));
+macro phi = XOR( Cm,rg);
+macro CmStar = XOR( phi,rgStar);
+macro theta = XOR( CmStar, rp);
+macro rpStar = XOR( mew,rm);
+macro CmStarr = XOR (theta, rpStar);
+macro RmStar = PUF(CmStarr);
+macro H4Star = h(Concat(pidm,rpStar, h(RmStar), T4));
+macro khm' = h(Concat(rmStar,rp,Rm''));
+macro khm'' = h(Concat(rm,rpStar,h(RmStar)));
+macro kgh' = h(Concat(rhStar,rg,Rh));
+macro kgh'' = h( Concat(rh,rgStar,RhStar));
+macro H2Star = h(Concat( pidh,rhStar,T2));
+macro H3Star = h ( Concat( pidh,rgStar,T3));
+
+role M
+{
+var T4:Nonce;
+const idm,idh,Cm, MSK,Rm,Ch,Rh,rg,rh,rm,rp: Ticket;
+send_!(M,M,PUF(Cm));
+recv_!(M,M,Rm);
+send_1(M,G,M, {M,idm,Cm,Rm}k(M,G));
+recv_2(G,M,{G,pidm}k(G,M));
+fresh T1: Nonce;
+send_5(M,H, pidm,H1,bm, T1);
+recv_8(H,M,H4,theta,mew,T4);
+match(H4,H4Star);
+
+claim_M1(M, Alive);
+claim_M2(M, Niagree);
+claim_M3(M, Nisynch);
+claim_M4(M, Secret, khm'');
+claim_M5(M, SKR, khm'');
+claim_M6(M, Secret, Rm);
+claim_M7(M, Secret, rm);
+claim_M8(M,Secret, Cm);
+}
+
+role H
+{
+const idm,idh,Cm, MSK,Rm,Ch,Rh,rg,rh,rm,rp: Ticket;
+var T1, T3: Nonce;
+send_!0(H,H,PUF(Ch));
+recv_!0(H,H,Rh);
+send_3(H,G,H, {H,idh,Ch,Rh}k(H,G));
+recv_4(G,H,G,{G,pidh}k(G,H));
+recv_5(M,H, pidm,H1,bm, T1);
+fresh T2:Nonce;
+send_6(H,G, pidh, H2,bh, T2);
+recv_7(G,H,phi,beta,omega,H3,delta,lambda,T3);
+match(H3,H3Star);
+match(H1,H1Star);
+fresh T4:Nonce;
+send_8(H,M,H4,theta,mew,T4);
+
+claim_H1(H, Alive);
+claim_H2(H, Niagree);
+claim_H3(H,Nisynch);
+claim_H4(H, Secret, Rh);
+claim_H5(H, Secret, rh);
+claim_H6(H,Secret, Ch);
+claim_H7(H, SKR, kgh'');
+claim_H8(H, Secret, khm');
+claim_H9(H, Secret, rp);
+}
+
+
+role G
+{
+const idm,idh,Cm, MSK,Rm,Ch,Rh,rg,rh,rm,rp: Ticket;
+var T2: Nonce;
+recv_1(M,G,M, {M,idm,Cm,Rm}k(M,G));
+send_2(G,M,{G,pidm}k(G,M));
+recv_3(H,G,H, {H,idh,Ch,Rh}k(H,G));
+send_4(G,H,G,{G,pidh}k(G,H));
+recv_6(H,G, pidh, H2,bh, T2);
+match(H2, H2Star);
+fresh T3: Nonce;
+send_7(G,H,phi,beta,omega,H3,delta,lambda,T3);
+
+claim_G1(G, Alive);
+claim_G2(G, Niagree);
+claim_G3(G, Nisynch);
+claim_G4(G, Secret, kgh');
+claim_G4(G, SKR, kgh');
+claim_H4(G, Secret, MSK);
+claim_H5(G, Secret, rg);
+
+}
+}
