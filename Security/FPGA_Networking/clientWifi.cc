@@ -57,7 +57,7 @@ int main(){
 		}
 
 		espSendCommand("AT+CWJAP="+ssid+","+pwd+"\r\n");
-		sleep(10);
+		sleep(20);
 		recvData = espReceiveData();
 		found = recvData.find("OK");
 		if(found != string::npos)
@@ -83,7 +83,8 @@ int main(){
 			xil_printf("Failed to get IP\n\r");
 			return 0;
 		}
-		espSendCommand("AT+CIPMUX=1\r\n");
+
+		espSendCommand("AT+CIPMUX=0\r\n");
 		recvData = espReceiveData();
 		found = recvData.find("OK");
 		if(found != string::npos)
@@ -92,17 +93,28 @@ int main(){
 			xil_printf("Error cannot configure MUX\n\r");
 			return 0;
 		}
-		espSendCommand("AT+CIPSERVER=1,80\r\n");
+
+		/*espSendCommand("AT+CIPSERVER=1,80\r\n");
 		recvData = espReceiveData();
 		found = recvData.find("OK");
 		if(found != string::npos)
-			xil_printf("Started HTTP Server on port 80\n\r");
+			xil_printf("Started Server on port 80\n\r");
 		else{
 			xil_printf("Failed to start server\n\r");
 			return 0;
-		}
-		loop();
+		}*/
+
+
+		//espSendCommand("AT+CIPSTATUS\n\r");
+		espSendCommand("AT+CIPSTART=\"TCP\",\"192.168.63.88\",80\r\n");
+		//espSendCommand("AT+CIPSTART=\"UDP\",\"192.168.4.1\",80\n\r");
+		recvData = espReceiveData();
+		//espSendData('0',"Hello\n\r");
+		//recvData = espReceiveData();
+		//loop();
 }
+
+
 
 void loop() {
   string recvData;
@@ -114,12 +126,12 @@ void loop() {
 	  recvData = espReceiveData();//Wait for some data from ESP. ESP will have data when it receives a request over the network from a client
 	  //for(u32 i=0;i<recvData.length();i++)
 	  //  xil_printf("%c",recvData[i]);
-	  found = recvData.find("IPD,");
+	  found = recvData.find("GET / HTTP/1.1");
 	  if(found != string::npos){
 		  //xil_printf("loc %d\n\r",found);
-		  channelNum = recvData[found+4];
+		  channelNum = 80;
 		  sendData = to_string(i);
-		  espSendData('0',sendData);
+		  espSendData(channelNum,sendData);
 		  //espSendCommand("001");
 		  i++;
 		  //xil_printf("Channel No:%d\n\r",channelNum);
@@ -150,8 +162,8 @@ void espSendData(char channelNum,string sendData){
 		i++;
 	}
 	usleep(1000000);
-	//espSendCommand("AT+CIPCLOSE="+getString(channelNum)+"\r\n");
-	//usleep(100000);
+	espSendCommand("AT+CIPCLOSE="+getString(channelNum)+"\r\n");
+	usleep(100000);
 }
 
 string espReceiveData(){
